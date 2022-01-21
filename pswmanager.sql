@@ -1,0 +1,10 @@
+DROP DATABASE IF EXISTS pswmanager;
+CREATE DATABASE pswmanager;
+USE pswmanager;
+
+CREATE TABLE  password(
+	id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	webname VARCHAR (50) NOT NULL,
+	url VARCHAR (50) NOT NULL, 
+	password VARCHAR (100) NOT NULL
+);
