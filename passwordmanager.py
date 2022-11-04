@@ -1,7 +1,13 @@
 import mysql.connector
+from cryptography.fernet import Fernet
 import random
 import os
 from words import words
+
+key = Fernet.generate_key()
+
+# Instance the Fernet class with the key
+fernet = Fernet(key)
 
 """ MySQL connection """
 mydb = mysql.connector.connect(
@@ -44,8 +50,14 @@ def addDataToDatabase():
     url = input("Enter url of website: ")
     password = input("Enter password: ")
 
+    # then use the Fernet class instance
+    # to encrypt the string string must
+    # be encoded to byte string before encryption
+    encPassword = fernet.encrypt(password.encode())
+    # decPassword = fernet.decrypt(encPassword).decode()
+
     sql = "INSERT INTO password (webname, url, password) VALUES (%s, %s, %s)"
-    val = (webname, url, password)
+    val = (webname, url, encPassword)
     mycursor.execute(sql, val)
 
     mydb.commit()
@@ -54,6 +66,15 @@ def addDataToDatabase():
 
     print("\n")
 
+
+""" Show Password """
+def showPassword(id):
+    mycursor.execute(f"SELECT password FROM password WHERE id LIKE '{id}'")
+
+    myresult = mycursor.fetchone()
+    
+    for x in myresult:
+        print(fernet.decrypt(x).decode())
 
 """ Password Search """
 
@@ -91,7 +112,8 @@ def passwordSearch():
     print(('-'*13) + 'What do you want to do with password' + ('-' * 13))
     print("1. EDIT DATA")
     print("2. DELETE DATA")
-    print("3. NOTHING")
+    print("3. SHOW PASSWORD")
+    print("4. NOTHING")
     print('-'*30)
 
     choice = int(input(": "))
@@ -100,6 +122,8 @@ def passwordSearch():
         editData(id)
     elif choice == 2:
         deleteData(id)
+    elif choice == 3:
+        showPassword(id);
 
 
 def editData(id):
