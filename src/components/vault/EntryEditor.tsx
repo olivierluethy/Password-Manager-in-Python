@@ -2,15 +2,18 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Eye,
   EyeOff,
+  Plus,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
   TriangleAlert,
   Wand2,
+  X,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Field } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { StrengthBar } from "@/components/StrengthBar";
 import { GeneratorPanel } from "@/components/generator/GeneratorPanel";
 import { useToast } from "@/components/ui/Toast";
@@ -23,7 +26,7 @@ const EMPTY: EntryInput = {
   title: "",
   url: "",
   email: "",
-  username: "",
+  usernames: [],
   password: "",
   notes: "",
   folderId: null,
@@ -60,7 +63,7 @@ export function EntryEditor({
         title: entry.title,
         url: entry.url,
         email: entry.email,
-        username: entry.username,
+        usernames: entry.usernames,
         password: entry.password,
         notes: entry.notes,
         folderId: entry.folderId,
@@ -111,7 +114,10 @@ export function EntryEditor({
     }
     setBusy(true);
     try {
-      const input = { ...form };
+      const input = {
+        ...form,
+        usernames: form.usernames.map((s) => s.trim()).filter(Boolean),
+      };
       if (!input.title.trim()) input.title = input.url;
       await onSave(input, entry?.id);
       onOpenChange(false);
@@ -154,22 +160,18 @@ export function EntryEditor({
             </p>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Email">
-              <Input
-                value={form.email}
-                onChange={(e) => set("email", e.target.value)}
-                placeholder="you@example.com"
-              />
-            </Field>
-            <Field label="Username">
-              <Input
-                value={form.username}
-                onChange={(e) => set("username", e.target.value)}
-                placeholder="username"
-              />
-            </Field>
-          </div>
+          <Field label="Email">
+            <Input
+              value={form.email}
+              onChange={(e) => set("email", e.target.value)}
+              placeholder="you@example.com"
+            />
+          </Field>
+
+          <UsernamesField
+            values={form.usernames}
+            onChange={(v) => set("usernames", v)}
+          />
 
           <Field label="Password">
             <div className="relative">
@@ -245,19 +247,20 @@ export function EntryEditor({
           )}
 
           <Field label="Folder">
-            <select
+            <Select
+              ariaLabel="Folder"
+              className="w-full"
               value={form.folderId ?? ""}
-              onChange={(e) => set("folderId", e.target.value || null)}
-              className="h-10 w-full rounded-sm border border-ink-600 bg-ink-800 px-3 text-body text-mist-50 focus-visible:border-brass-500 focus-visible:outline-none"
-            >
-              <option value="">No folder</option>
-              {folderOptions.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {" ".repeat(f.depth * 2)}
-                  {f.name}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => set("folderId", v || null)}
+              options={[
+                { value: "", label: "No folder" },
+                ...folderOptions.map((f) => ({
+                  value: f.id,
+                  label: f.name,
+                  depth: f.depth,
+                })),
+              ]}
+            />
           </Field>
 
           <Field label="Notes">
@@ -279,6 +282,62 @@ export function EntryEditor({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** A flexible list of usernames (0..N): add/remove rows, no cap. */
+function UsernamesField({
+  values,
+  onChange,
+}: {
+  values: string[];
+  onChange: (v: string[]) => void;
+}) {
+  // Always show at least one row to type into; empties are dropped on save.
+  const rows = values.length ? values : [""];
+
+  const setAt = (i: number, v: string) => {
+    const next = [...rows];
+    next[i] = v;
+    onChange(next);
+  };
+  const removeAt = (i: number) => {
+    const next = rows.filter((_, idx) => idx !== i);
+    onChange(next);
+  };
+
+  return (
+    <Field label={values.length > 1 ? "Usernames" : "Username"}>
+      <div className="flex flex-col gap-2">
+        {rows.map((u, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <Input
+              value={u}
+              onChange={(e) => setAt(i, e.target.value)}
+              placeholder="username"
+            />
+            {rows.length > 1 && (
+              <button
+                type="button"
+                tabIndex={-1}
+                onClick={() => removeAt(i)}
+                title="Remove"
+                className="grid h-10 w-9 shrink-0 place-items-center rounded-sm border border-ink-600 text-steel-400 transition-colors hover:text-[color:var(--danger)]"
+              >
+                <X size={15} />
+              </button>
+            )}
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => onChange([...rows, ""])}
+          className="flex items-center gap-1.5 self-start text-body-sm text-steel-400 transition-colors hover:text-brass-500"
+        >
+          <Plus size={14} /> Add username
+        </button>
+      </div>
+    </Field>
   );
 }
 
