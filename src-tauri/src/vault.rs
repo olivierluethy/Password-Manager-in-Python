@@ -73,7 +73,8 @@ impl VaultManager {
         let key = derive_key(master_password, &salt, &file.kdf_params)?;
         check_verifier(&key, &file.verifier)?;
         let plaintext = crypto::open(&key, &file.vault)?;
-        let data: VaultData = serde_json::from_slice(&plaintext)?;
+        let mut data: VaultData = serde_json::from_slice(&plaintext)?;
+        data.migrate();
         self.state = Some(UnlockedState {
             key,
             salt,
@@ -351,7 +352,8 @@ impl VaultManager {
         let key: DerivedKey = derive_key(master_password, &salt, &file.kdf_params)?;
         check_verifier(&key, &file.verifier)?;
         let plaintext = crypto::open(&key, &file.vault)?;
-        let data: VaultData = serde_json::from_slice(&plaintext)?;
+        let mut data: VaultData = serde_json::from_slice(&plaintext)?;
+        data.migrate();
         Ok(data)
     }
 

@@ -174,10 +174,11 @@ struct ImportMap {
 }
 
 fn or_email(e: &Entry) -> String {
-    if e.username.is_empty() && !e.email.is_empty() {
+    let primary = e.primary_username();
+    if primary.is_empty() && !e.email.is_empty() {
         e.email.clone()
     } else {
-        e.username.clone()
+        primary.to_string()
     }
 }
 
@@ -274,10 +275,10 @@ pub fn parse_csv(content: &str, format: Format) -> Result<ParsedCsv> {
                 } else {
                     String::new()
                 },
-                username: if looks_like_email {
-                    String::new()
+                usernames: if looks_like_email || username.is_empty() {
+                    Vec::new()
                 } else {
-                    username
+                    vec![username]
                 },
                 password,
                 notes: get(&rec, map.notes),
