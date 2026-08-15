@@ -292,7 +292,7 @@ function SecurityDetails() {
       </button>
       {open && (
         <ul className="mt-2 flex flex-col gap-1 pl-6 text-body-sm text-steel-400">
-          <li>Key derivation: Argon2id (64 MiB, 3 passes)</li>
+          <li>Key derivation: Argon2id (64 MiB, memory-hard)</li>
           <li>Encryption: XChaCha20-Poly1305 (AEAD)</li>
           <li>Vault stored locally; master password never saved</li>
           <li>Secrets zeroized in memory on lock</li>

@@ -40,10 +40,14 @@ pub struct KdfParams {
 
 impl Default for KdfParams {
     fn default() -> Self {
-        // 64 MiB, 3 passes, 1 lane — strong for an interactive unlock.
+        // 64 MiB, 2 passes, 1 lane. Memory hardness (64 MiB, well above the OWASP
+        // 19 MiB floor) is the primary defense; 2 passes lands the unlock in the
+        // ~250-500ms interactive target on typical desktop hardware. The key is
+        // derived once per session and cached, so this cost is paid only at unlock.
+        // Existing vaults keep whatever params they were created with.
         KdfParams {
             m_cost: 65_536,
-            t_cost: 3,
+            t_cost: 2,
             p_cost: 1,
         }
     }
