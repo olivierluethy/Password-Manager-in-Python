@@ -5,7 +5,7 @@ export interface Entry {
   title: string;
   url: string;
   email: string;
-  username: string;
+  usernames: string[];
   password: string;
   notes: string;
   folderId: string | null;
@@ -19,7 +19,7 @@ export interface EntryInput {
   title: string;
   url: string;
   email: string;
-  username: string;
+  usernames: string[];
   password: string;
   notes: string;
   folderId: string | null;
@@ -36,11 +36,18 @@ export interface Folder {
 }
 
 export interface Settings {
+  /** Vault timeout: -1 = Immediately (on hide), 0 = Never, -2 = On app restart,
+   *  positive = inactivity seconds. Never locks on blur/navigation/dialogs. */
   autoLockSecs: number;
+  /** What the timeout does: "lock" or "logout". */
+  vaultTimeoutAction: "lock" | "logout";
+  /** Lock the vault when the app window is closed. */
+  lockOnClose: boolean;
   clipboardClearSecs: number;
-  lockOnBlur: boolean;
   theme: "system" | "dark" | "light";
   defaultBrowser: string;
+  /** Load website favicons for entries (network request to the entry's site). */
+  loadWebsiteIcons: boolean;
   hibpEnabled: boolean;
 }
 
@@ -98,6 +105,8 @@ export interface GenOptions {
   digits: boolean;
   symbols: boolean;
   avoidAmbiguous: boolean;
+  minNumbers: number;
+  minSymbols: number;
   wordCount: number;
   separator: string;
   capitalize: boolean;

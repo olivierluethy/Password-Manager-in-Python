@@ -72,6 +72,9 @@ export const api = {
   // breach (opt-in)
   checkBreach: (password: string) => invoke<number>("check_breach", { password }),
 
+  // favicons (opt-in via load_website_icons)
+  fetchFavicon: (url: string) => invoke<string | null>("fetch_favicon", { url }),
+
   // encrypted backup
   exportEncrypted: (path: string) => invoke<void>("export_encrypted", { path }),
   importEncrypted: (path: string, masterPassword: string) =>
