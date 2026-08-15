@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Globe, KeyRound, ShieldCheck, Wifi } from "lucide-react";
+import { Globe, ImageIcon, KeyRound, Lock, ShieldCheck, Wifi } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { Switch } from "@/components/ui/Switch";
 import { useToast } from "@/components/ui/Toast";
 import { api, errMsg } from "@/lib/api";
@@ -19,7 +20,7 @@ export function SettingsDialog({
   onOpenChange: (v: boolean) => void;
   browsers: BrowserInfo[];
 }) {
-  const { settings, saveSettings } = useVault();
+  const { settings, saveSettings, lock } = useVault();
   const { toast } = useToast();
   const [local, setLocal] = useState<Settings | null>(settings);
   const [showChangePw, setShowChangePw] = useState(false);
@@ -52,28 +53,68 @@ export function SettingsDialog({
                 onChange={(v) => update("theme", v as Settings["theme"])}
               />
             </Row>
+            <div className="flex items-start gap-3">
+              <ImageIcon size={18} className="mt-0.5 shrink-0 text-steel-400" />
+              <div className="flex-1">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-body text-mist-200">Load website icons</span>
+                  <Switch
+                    checked={local.loadWebsiteIcons}
+                    onCheckedChange={(v) => update("loadWebsiteIcons", v)}
+                  />
+                </div>
+                <p className="mt-1 text-body-sm text-steel-500">
+                  Fetches each entry's favicon from its own website (a network
+                  request to that site). Off falls back to a lettered avatar.
+                </p>
+              </div>
+            </div>
           </Group>
 
           {/* Security */}
           <Group title="Security">
-            <Row label="Auto-lock after inactivity">
-              <SelectBox
+            <Row label="Vault timeout" hint="When to lock after you stop using Tresor.">
+              <Select
+                ariaLabel="Vault timeout"
                 value={String(local.autoLockSecs)}
                 onChange={(v) => update("autoLockSecs", Number(v))}
                 options={[
+                  { value: "-1", label: "Immediately" },
                   { value: "60", label: "1 minute" },
                   { value: "300", label: "5 minutes" },
                   { value: "900", label: "15 minutes" },
                   { value: "1800", label: "30 minutes" },
+                  { value: "3600", label: "1 hour" },
+                  { value: "14400", label: "4 hours" },
+                  { value: "-2", label: "On app restart" },
                   { value: "0", label: "Never" },
                 ]}
               />
             </Row>
-            <Row label="Lock when window loses focus" hint="Recommended for shared computers.">
-              <Switch checked={local.lockOnBlur} onCheckedChange={(v) => update("lockOnBlur", v)} />
+            <Row label="Vault timeout action">
+              <Segmented
+                value={local.vaultTimeoutAction}
+                options={[
+                  { value: "lock", label: "Lock" },
+                  { value: "logout", label: "Log out" },
+                ]}
+                onChange={(v) =>
+                  update("vaultTimeoutAction", v as Settings["vaultTimeoutAction"])
+                }
+              />
+            </Row>
+            <Row
+              label="Lock on app close"
+              hint="Requires the master password again next launch."
+            >
+              <Switch
+                checked={local.lockOnClose}
+                onCheckedChange={(v) => update("lockOnClose", v)}
+              />
             </Row>
             <Row label="Clear clipboard after copy">
-              <SelectBox
+              <Select
+                ariaLabel="Clear clipboard after copy"
                 value={String(local.clipboardClearSecs)}
                 onChange={(v) => update("clipboardClearSecs", Number(v))}
                 options={[
@@ -84,15 +125,32 @@ export function SettingsDialog({
                 ]}
               />
             </Row>
-            <Button variant="secondary" size="sm" onClick={() => setShowChangePw(true)} className="self-start">
-              <KeyRound size={15} /> Change master password
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  onOpenChange(false);
+                  lock();
+                }}
+              >
+                <Lock size={15} /> Lock now
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowChangePw(true)}
+              >
+                <KeyRound size={15} /> Change master password
+              </Button>
+            </div>
           </Group>
 
           {/* Browser */}
           <Group title="Opening links">
             <Row label="Default browser" hint="Used when you open an entry's website.">
-              <SelectBox
+              <Select
+                ariaLabel="Default browser"
                 value={local.defaultBrowser}
                 onChange={(v) => update("defaultBrowser", v)}
                 options={browsers
@@ -302,34 +360,3 @@ function Segmented({
   );
 }
 
-function SelectBox({
-  value,
-  onChange,
-  options,
-  icon,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  options: { value: string; label: string }[];
-  icon?: React.ReactNode;
-}) {
-  return (
-    <div className="relative flex items-center">
-      {icon && <span className="pointer-events-none absolute left-2.5 text-steel-400">{icon}</span>}
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className={cn(
-          "h-9 rounded-sm border border-ink-600 bg-ink-800 pr-8 text-body-sm text-mist-50 focus-visible:border-brass-500 focus-visible:outline-none",
-          icon ? "pl-8" : "pl-3",
-        )}
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
