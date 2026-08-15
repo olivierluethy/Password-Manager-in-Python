@@ -1,0 +1,164 @@
+@import "@fontsource/space-grotesk/500.css";
+@import "@fontsource/space-grotesk/600.css";
+@import "@fontsource/space-grotesk/700.css";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   Design tokens — see docs/STYLEGUIDE.md
+   Light palette on bare :root; dark overrides below.
+   ============================================================ */
+:root {
+  /* Light theme ("daylight") — brushed bone */
+  --ink-900: #e7e4da;
+  --ink-850: #edeae1;
+  --ink-800: #f4f1ea;
+  --ink-700: #fbf9f3;
+  --ink-650: #efebe0;
+  --ink-600: #d6d1c3;
+  --steel-500: #9a9384;
+  --steel-400: #6e6759;
+  --mist-200: #2c3630;
+  --mist-50: #161d19;
+  --brass-600: #7e621f;
+  --brass-500: #9a7a2e;
+  --brass-400: #b79642;
+  --brass-glow: rgba(154, 122, 46, 0.16);
+  --ok: #2f7d57;
+  --warn: #b26d18;
+  --danger: #b23d28;
+  --info: #2e6e8c;
+  --scrim: rgba(30, 28, 20, 0.45);
+}
+
+/* Dark theme as the system default (no explicit choice) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink-900: #0e1614;
+    --ink-850: #111b18;
+    --ink-800: #141f1c;
+    --ink-700: #1c2a26;
+    --ink-650: #22332e;
+    --ink-600: #2a3b36;
+    --steel-500: #5e756c;
+    --steel-400: #7c9188;
+    --mist-200: #c9d6d0;
+    --mist-50: #edf2ef;
+    --brass-600: #a6842f;
+    --brass-500: #c8a24c;
+    --brass-400: #dbb968;
+    --brass-glow: rgba(200, 162, 76, 0.14);
+    --ok: #5fb88e;
+    --warn: #e39a4b;
+    --danger: #d26a54;
+    --info: #6ba7c4;
+    --scrim: rgba(6, 10, 9, 0.6);
+  }
+}
+
+/* Explicit dark choice wins in both directions */
+:root[data-theme="dark"] {
+  --ink-900: #0e1614;
+  --ink-850: #111b18;
+  --ink-800: #141f1c;
+  --ink-700: #1c2a26;
+  --ink-650: #22332e;
+  --ink-600: #2a3b36;
+  --steel-500: #5e756c;
+  --steel-400: #7c9188;
+  --mist-200: #c9d6d0;
+  --mist-50: #edf2ef;
+  --brass-600: #a6842f;
+  --brass-500: #c8a24c;
+  --brass-400: #dbb968;
+  --brass-glow: rgba(200, 162, 76, 0.14);
+  --ok: #5fb88e;
+  --warn: #e39a4b;
+  --danger: #d26a54;
+  --info: #6ba7c4;
+  --scrim: rgba(6, 10, 9, 0.6);
+}
+
+@layer base {
+  * {
+    border-color: var(--ink-600);
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    background-color: var(--ink-900);
+    color: var(--mist-200);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: "Space Grotesk", system-ui, sans-serif;
+    color: var(--mist-50);
+  }
+
+  /* Allow text selection where it matters (inputs, secrets, notes) */
+  input,
+  textarea,
+  [data-selectable] {
+    user-select: text;
+  }
+
+  ::selection {
+    background: var(--brass-glow);
+  }
+
+  /* Focus visibility — never removed (styleguide §7) */
+  :focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px var(--ink-900),
+      0 0 0 4px var(--brass-500);
+    border-radius: 6px;
+  }
+
+  /* Custom scrollbars — quiet, vault-toned */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--ink-600);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--steel-500);
+    background-clip: content-box;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
