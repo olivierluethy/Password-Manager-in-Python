@@ -129,10 +129,16 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
     activityRef.current = Date.now();
   }, []);
 
-  // Auto-lock on inactivity.
+  // Auto-lock on inactivity (Bitwarden-style). Once unlocked, the vault stays
+  // unlocked through folder selection, page/tab switches, the generator, dialogs,
+  // and window blur — it locks ONLY on the configured inactivity timeout, an
+  // explicit lock/logout, or app close. Nothing else.
   useEffect(() => {
     if (status !== "unlocked" || !settings) return;
     const timeout = settings.autoLockSecs;
+    // 0 = Never, -2 = On app restart (no in-session lock), -1 = Immediately
+    // (handled by the visibility effect below). Only a positive value arms the
+    // inactivity timer.
     if (timeout <= 0) return;
     const iv = setInterval(() => {
       if ((Date.now() - activityRef.current) / 1000 >= timeout) {
@@ -142,31 +148,44 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(iv);
   }, [status, settings, lock]);
 
-  // Lock on window blur (if enabled).
+  // "Immediately" (autoLockSecs === -1): lock when the app is genuinely hidden or
+  // minimized — NOT on mere focus loss. Clicking a dropdown, opening the
+  // generator, or switching to another window keeps the vault open.
+  useEffect(() => {
+    if (status !== "unlocked" || settings?.autoLockSecs !== -1) return;
+    const onVisibility = () => {
+      if (document.hidden) lock();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [status, settings, lock]);
+
+  // Lock on app close (if enabled). The in-memory key is dropped on process exit
+  // regardless; this belt-and-suspenders zeroizes it before the window goes away.
   useEffect(() => {
     if (status !== "unlocked") return;
     let unlisten: (() => void) | undefined;
     (async () => {
       const win = getCurrentWindow();
-      unlisten = await win.onFocusChanged(({ payload: focused }) => {
-        if (!focused && settingsRef.current?.lockOnBlur) {
-          lock();
+      unlisten = await win.onCloseRequested(async () => {
+        if (settingsRef.current?.lockOnClose) {
+          await api.lockVault();
         }
       });
     })();
     return () => unlisten?.();
-  }, [status, lock]);
+  }, [status]);
 
-  // Global activity listeners.
+  // Global activity listeners: any real user activity resets the inactivity timer.
   useEffect(() => {
     if (status !== "unlocked") return;
     const handler = () => markActivity();
-    window.addEventListener("pointerdown", handler);
-    window.addEventListener("keydown", handler);
-    return () => {
-      window.removeEventListener("pointerdown", handler);
-      window.removeEventListener("keydown", handler);
-    };
+    const events = ["pointerdown", "pointermove", "keydown", "wheel", "focusin"];
+    events.forEach((e) =>
+      window.addEventListener(e, handler, { passive: true }),
+    );
+    return () =>
+      events.forEach((e) => window.removeEventListener(e, handler));
   }, [status, markActivity]);
 
   // ---- entry actions (optimistic-ish: refetch via returned data) --------
