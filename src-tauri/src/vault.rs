@@ -129,6 +129,15 @@ impl VaultManager {
         self.persist()
     }
 
+    /// Verify a password against the currently-unlocked vault (used to re-auth
+    /// before a plaintext migration export). Does not change state.
+    pub fn verify_password(&self, password: &str) -> Result<()> {
+        let st = self.state.as_ref().ok_or(TresorError::Locked)?;
+        let candidate = derive_key(password, &st.salt, &st.kdf_params)?;
+        let verifier = make_verifier(&st.key)?;
+        check_verifier(&candidate, &verifier)
+    }
+
     // ---- data access -----------------------------------------------------
 
     fn data(&self) -> Result<&VaultData> {
@@ -346,6 +355,30 @@ impl VaultManager {
         Ok(data)
     }
 
+    /// Import a batch of entries, each tagged with a folder path like "Work/Email".
+    /// Nested folders are created on demand and reused; the vault is persisted once.
+    pub fn import_batch(&mut self, rows: Vec<(EntryInput, String)>) -> Result<usize> {
+        let data = self.data_mut()?;
+        let mut path_cache: std::collections::HashMap<String, String> =
+            std::collections::HashMap::new();
+        let mut count = 0;
+
+        for (mut input, path) in rows {
+            let folder_id = if path.trim().is_empty() {
+                None
+            } else {
+                Some(ensure_folder_path(data, &path, &mut path_cache))
+            };
+            input.folder_id = folder_id;
+            data.entries.push(Entry::new(input));
+            count += 1;
+        }
+        self.persist()?;
+        Ok(count)
+    }
+
+    // ---- merge helpers ---------------------------------------------------
+
     /// Merge imported entries/folders into the current vault (new ids to avoid
     /// collisions), keeping existing data.
     pub fn merge_in(&mut self, incoming: VaultData) -> Result<(usize, usize)> {
@@ -379,4 +412,48 @@ impl VaultManager {
         self.persist()?;
         Ok((entry_count, folder_count))
     }
+}
+
+/// Resolve (creating as needed) a nested folder path like "Work/Email" within the
+/// vault data, returning the leaf folder id. Segments are matched by name under
+/// their parent so existing folders are reused.
+fn ensure_folder_path(
+    data: &mut VaultData,
+    path: &str,
+    cache: &mut std::collections::HashMap<String, String>,
+) -> String {
+    let mut parent: Option<String> = None;
+    let mut cumulative = String::new();
+
+    for segment in path.split('/').map(|s| s.trim()).filter(|s| !s.is_empty()) {
+        if cumulative.is_empty() {
+            cumulative = segment.to_string();
+        } else {
+            cumulative = format!("{cumulative}/{segment}");
+        }
+        if let Some(id) = cache.get(&cumulative) {
+            parent = Some(id.clone());
+            continue;
+        }
+        // Reuse an existing folder with this name under the same parent.
+        let existing = data
+            .folders
+            .iter()
+            .find(|f| f.name == segment && f.parent_id == parent)
+            .map(|f| f.id.clone());
+        let id = match existing {
+            Some(id) => id,
+            None => {
+                let order = data.folders.len() as i32;
+                let folder = Folder::new(segment.to_string(), parent.clone(), order);
+                let id = folder.id.clone();
+                data.folders.push(folder);
+                id
+            }
+        };
+        cache.insert(cumulative.clone(), id.clone());
+        parent = Some(id);
+    }
+
+    parent.unwrap_or_default()
 }

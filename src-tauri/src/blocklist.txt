@@ -1,0 +1,14 @@
+# Tresor bundled phishing blocklist (starter set).
+# One host per line; lines beginning with '#' are comments. Matching is on the
+# registrable host and its subdomains. This ships with the app and can be
+# refreshed from a local file in Settings — there is no live cloud dependency.
+paypal-secure-login.com
+apple-id-verify.com
+secure-bankofamerica.com
+signin-amazon-account.com
+microsoft-account-security.com
+netflix-billing-update.com
+coinbase-wallet-verify.com
+metamask-wallet-restore.com
+update-your-account-now.com
+account-verification-center.com
