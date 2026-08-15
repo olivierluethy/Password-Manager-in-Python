@@ -10,7 +10,7 @@ over Tauri's IPC. There is no server and no database process.
 │                                                            │
 │   screens/ LockScreen, Vault                               │
 │   components/ vault · generator · settings · migration     │
-│   store.tsx  ── app state, auto-lock, lock-on-blur         │
+│   store.tsx  ── app state, session/auto-lock, theme        │
 │   lib/api.ts ── typed invoke() wrappers                    │
 └───────────────┬────────────────────────────────────────────┘
                 │  Tauri IPC (commands)
@@ -35,14 +35,15 @@ over Tauri's IPC. There is no server and no database process.
 | Module | Responsibility |
 |--------|----------------|
 | `crypto` | Argon2id KDF, XChaCha20-Poly1305 seal/open, verifier, CSPRNG. The derived key is zeroized on drop. |
-| `model` | Serializable data types (camelCase for the frontend). |
+| `model` | Serializable data types (camelCase for the frontend). Entries carry a `usernames` list (0..N); `VaultData::migrate()` folds pre-existing single-username vaults into it on load. |
 | `storage` | The on-disk `VaultFile` envelope and atomic read/write. |
 | `vault` | `VaultManager` — holds the decrypted `VaultData` and derived key while unlocked; all mutations go through it and re-persist. Locking drops (zeroizes) the key. |
 | `generator` | Password/passphrase/pronounceable generation with entropy estimates. |
 | `analysis` | zxcvbn strength scoring and whole-vault health (weak/reused/similar/stale). |
 | `phishing` | Offline URL verification and the bundled blocklist. |
 | `browser` | Installed-browser detection and opening URLs per-OS. |
-| `breach` | Opt-in HIBP k-anonymity check (the only networked code). |
+| `breach` | Opt-in HIBP k-anonymity check. |
+| `favicon` | Website-favicon fetch (`/favicon.ico` then `<link rel=icon>`), image validation, and per-domain on-disk caching; gated by the `load_website_icons` setting. Returns a `data:` URL. |
 | `migration` | Plaintext CSV import/export per vendor layout. |
 | `commands` | Thin Tauri command handlers that lock the state mutex and delegate. |
 | `error` | `TresorError`, serialized to a plain string for the frontend. |
@@ -64,13 +65,17 @@ is cleared and the frontend copy is dropped.
    the verifier checked, and the payload decrypted into memory.
 4. **Unlocked** → the UI issues CRUD commands; each mutation re-encrypts and
    re-writes the vault file atomically.
-5. **Auto-lock** → a frontend inactivity timer and a window-blur listener call
-   `lock_vault`, which zeroizes the key and clears decrypted secrets.
+5. **Session & auto-lock (Bitwarden-style)** → after unlock the key stays cached
+   in Rust for the whole session. The frontend locks (`lock_vault`, which
+   zeroizes the key and clears decrypted secrets) only on: the configurable
+   inactivity timeout, an explicit **Lock now**/logout, app close (if enabled),
+   or — for the "Immediately" option — the window actually being hidden. It never
+   locks on window blur, navigation, or opening a dialog/menu.
 
 ## Frontend structure
 
 - `store.tsx` — a React context holding the snapshot and all actions; owns the
-  auto-lock timer, the window-blur listener, activity tracking, and theme
+  inactivity timeout, the hide/close lock listeners, activity tracking, and theme
   application.
 - `screens/` — top-level routes chosen by vault status (loading → onboarding →
   locked → unlocked).

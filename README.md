@@ -25,12 +25,21 @@ came before and why it was replaced).
 - **Strong local crypto.** Master password → **Argon2id** key derivation; vault
   encrypted at rest with **XChaCha20-Poly1305** (AEAD). The master password and
   derived key are never stored; secrets are zeroized in memory on lock.
-- **Auto-lock.** Locks on inactivity (configurable) and when the window loses
-  focus.
+- **Bitwarden-style session.** Unlock once and the vault stays open for the whole
+  session; it locks only on the configurable inactivity timeout, an explicit
+  **Lock now**, or app close — never on window blur, navigation, or opening a
+  dialog. The key is derived once at unlock and cached in memory (zeroized on
+  lock).
+- **Website favicons.** Entries show the site's own icon (fetched by the backend
+  and cached locally), with a themed monogram fallback — toggleable.
+- **Multiple usernames.** Each entry holds a flexible list of usernames (0..N)
+  alongside an optional email; the password stays required.
 - **Delightful, fast UI.** A three-pane vault, an instant command-palette search
-  that always shows the nearest match, and a signature "combination dial".
-- **Password generator.** Random, passphrase (EFF wordlist), and pronounceable
-  modes with a live entropy readout — all from your OS secure RNG.
+  that always shows the nearest match, per-entry ⋯ quick actions, and a signature
+  "combination dial".
+- **Password generator.** Random (with minimum numbers/symbols), passphrase (EFF
+  wordlist), and pronounceable modes with a live entropy readout — all from your
+  OS secure RNG.
 - **Health dashboard.** Detects weak, reused (identical), similar (Levenshtein),
   and stale passwords with concrete fixes.
 - **Strength analysis.** zxcvbn scoring with human-readable suggestions as you type.
@@ -42,8 +51,13 @@ came before and why it was replaced).
 - **Encrypted backup** (`.tresor`) as the default export/import — master-password
   locked. Plus a clearly-warned, re-authenticated **CSV migration** to/from
   LastPass, Dashlane, NordPass, Bitwarden, 1Password, and KeePass.
-- **Breach check (opt-in).** HaveIBeenPwned via k-anonymity — the *only* feature
-  that ever touches the network, and it's off by default.
+- **Breach check (opt-in).** HaveIBeenPwned via k-anonymity — off by default,
+  and only ever sends the first 5 characters of a password's SHA-1 hash.
+- **Networking is minimal and controllable.** Only two features reach the
+  network: the opt-in breach check above, and website favicons (fetched by the
+  backend from each entry's own site, cached locally, toggleable and defaulting
+  on). Everything else — crypto, generation, health, phishing checks — is fully
+  offline.
 
 ## Running from source
 

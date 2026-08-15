@@ -5,8 +5,11 @@ deliberate trade-offs behind them.
 
 ## Design goals
 
-1. **Local-only.** No password or metadata ever leaves the device, except the
-   single, opt-in, off-by-default breach check (see below).
+1. **Local-only.** No password or vault metadata ever leaves the device. Two
+   features make outbound requests, neither of which sends a stored secret: the
+   opt-in, off-by-default breach check (see below), and website-favicon fetching
+   (backend-only, cached locally, toggleable; it requests the entry's own domain,
+   so that domain learns the icon was requested).
 2. **Unreadable at rest.** Without the master password, the vault file is
    indistinguishable from random data.
 3. **Memory hygiene.** Keys and decrypted secrets are zeroized as soon as they're
@@ -18,7 +21,7 @@ deliberate trade-offs behind them.
 
 | Concern | Choice | Notes |
 |---------|--------|-------|
-| Key derivation | **Argon2id** | 64 MiB memory, 3 iterations, 1 lane, 32-byte output. Memory-hard against GPU/ASIC cracking. Parameters are stored with the vault so they can evolve. |
+| Key derivation | **Argon2id** | 64 MiB memory, 2 iterations, 1 lane, 32-byte output (new vaults). Memory-hard against GPU/ASIC cracking; tuned for a ~250-500ms interactive unlock. Parameters are stored with the vault so they can evolve — existing vaults keep the params they were created with. The key is derived once per session and cached in memory. |
 | Salt | 16 random bytes | Generated per vault from the OS CSPRNG; stored in the vault file. |
 | Vault encryption | **XChaCha20-Poly1305** | AEAD; 24-byte random nonce per encryption. Authenterated — tampering is detected. |
 | Password verification | Verifier blob | A constant sealed under the derived key. Unlock derives the key and checks the verifier, so a wrong password is rejected without decrypting the whole vault, and the password itself is never compared. |
@@ -44,8 +47,11 @@ just as unreadable as the live vault and opens with the same master password.
   reveals nothing without the master password.
 - **Offline brute force.** Argon2id makes each password guess expensive in time
   *and* memory.
-- **Casual local access while locked.** Auto-lock (inactivity + window blur)
-  drops the key from memory; a locked vault holds no plaintext.
+- **Casual local access while locked.** A configurable inactivity timeout (and,
+  optionally, locking on app close or when the app is minimized) drops the key
+  from memory; a locked vault holds no plaintext. To keep the app usable, the
+  vault does **not** lock on window blur, navigation, or opening a dialog — the
+  session model follows Bitwarden.
 - **Tampering with the vault file.** The AEAD tag fails and the vault refuses to
   open rather than returning corrupted data.
 
@@ -63,12 +69,15 @@ just as unreadable as the live vault and opens with the same master password.
 ## Secrets in the frontend
 
 Tresor is a Tauri app: the frontend runs in a local, in-process WebView and talks
-to the Rust core over IPC — it is not a website and makes no external requests
-(the CSP forbids it, allowing only the HIBP host and only when opted in).
-Decrypted entries are handed to the WebView so it can display, copy, and analyze
-them. This is the standard Tauri desktop trade-off: the trust boundary is the OS
-user session, not the WebView. All *cryptography and key handling* stay in Rust;
-the WebView never sees the master password, the derived key, or the vault file.
+to the Rust core over IPC — it is not a website and makes no external network
+requests itself. The WebView CSP `connect-src` allows only IPC and the HIBP host;
+all other outbound HTTP (the favicon fetch) happens in the **Rust backend** via
+`reqwest`, not the WebView, and its result is handed back as a `data:` URL that
+`img-src data:` renders. Decrypted entries are handed to the WebView so it can
+display, copy, and analyze them. This is the standard Tauri desktop trade-off:
+the trust boundary is the OS user session, not the WebView. All *cryptography and
+key handling* stay in Rust; the WebView never sees the master password, the
+derived key, or the vault file.
 
 ## The one networked feature: breach checking
 
