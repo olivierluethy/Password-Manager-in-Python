@@ -16,6 +16,8 @@ const DEFAULTS: GenOptions = {
   digits: true,
   symbols: true,
   avoidAmbiguous: false,
+  minNumbers: 1,
+  minSymbols: 1,
   wordCount: 5,
   separator: "-",
   capitalize: true,
@@ -145,7 +147,25 @@ export function GeneratorPanel({
           <ToggleRow label="Lowercase (a-z)" checked={opts.lower} onChange={(v) => set("lower", v)} />
           <ToggleRow label="Uppercase (A-Z)" checked={opts.upper} onChange={(v) => set("upper", v)} />
           <ToggleRow label="Digits (0-9)" checked={opts.digits} onChange={(v) => set("digits", v)} />
+          {opts.digits && (
+            <StepperRow
+              label="Minimum numbers"
+              value={opts.minNumbers}
+              min={0}
+              max={9}
+              onChange={(v) => set("minNumbers", v)}
+            />
+          )}
           <ToggleRow label="Symbols (!@#…)" checked={opts.symbols} onChange={(v) => set("symbols", v)} />
+          {opts.symbols && (
+            <StepperRow
+              label="Minimum symbols"
+              value={opts.minSymbols}
+              min={0}
+              max={9}
+              onChange={(v) => set("minSymbols", v)}
+            />
+          )}
           <ToggleRow
             label="Avoid look-alikes (l, 1, O, 0…)"
             checked={opts.avoidAmbiguous}
@@ -242,6 +262,50 @@ function SliderRow({
         onChange={(e) => onChange(Number(e.target.value))}
         className="tresor-range"
       />
+    </div>
+  );
+}
+
+function StepperRow({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (v: number) => void;
+}) {
+  const clamp = (v: number) => Math.max(min, Math.min(max, v));
+  const btn =
+    "grid h-7 w-7 place-items-center rounded-sm border border-ink-600 text-steel-400 transition-colors hover:text-mist-50 disabled:opacity-40 disabled:hover:text-steel-400";
+  return (
+    <div className="flex items-center justify-between pl-4">
+      <span className="text-body-sm text-steel-400">{label}</span>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          className={btn}
+          disabled={value <= min}
+          onClick={() => onChange(clamp(value - 1))}
+        >
+          −
+        </button>
+        <span className="w-4 text-center font-mono text-body-sm text-mist-50">
+          {value}
+        </span>
+        <button
+          type="button"
+          className={btn}
+          disabled={value >= max}
+          onClick={() => onChange(clamp(value + 1))}
+        >
+          +
+        </button>
+      </div>
     </div>
   );
 }
