@@ -7,15 +7,17 @@ import {
   EyeOff,
   ExternalLink,
   Pencil,
+  MoreHorizontal,
   ShieldAlert,
   ShieldCheck,
   Star,
-  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { EntryActionsMenu } from "@/components/vault/EntryActionsMenu";
+import { Favicon } from "@/components/vault/Favicon";
 import { useToast } from "@/components/ui/Toast";
 import { api, errMsg } from "@/lib/api";
-import { initials, tileHue, timeAgo } from "@/lib/format";
+import { formatDateTime } from "@/lib/format";
 import { folderPath } from "@/lib/folders";
 import { cn } from "@/lib/utils";
 import { useVault } from "@/store";
@@ -30,7 +32,7 @@ export function EntryDetail({
   browsers: BrowserInfo[];
   onEdit: () => void;
 }) {
-  const { folders, settings, toggleFavorite, deleteEntry } = useVault();
+  const { folders, settings, toggleFavorite } = useVault();
   const { copy, toast } = useToast();
   const [showPw, setShowPw] = useState(false);
   const [verdict, setVerdict] = useState<UrlVerdict | null>(null);
@@ -79,15 +81,12 @@ export function EntryDetail({
     <div className="flex h-full flex-col">
       {/* Header */}
       <div className="flex items-start gap-4 border-b border-ink-600 p-6">
-        <div
-          className="grid h-12 w-12 shrink-0 place-items-center rounded-md font-display text-h3 font-semibold"
-          style={{
-            background: `color-mix(in srgb, hsl(${tileHue(entry.title || entry.url)} 45% 45%) 22%, var(--ink-700))`,
-            color: `hsl(${tileHue(entry.title || entry.url)} 60% 78%)`,
-          }}
-        >
-          {initials(entry.title, entry.url)}
-        </div>
+        <Favicon
+          title={entry.title}
+          url={entry.url}
+          enabled={settings?.loadWebsiteIcons ?? true}
+          className="h-12 w-12 rounded-md text-h3"
+        />
         <div className="min-w-0 flex-1">
           <h2 className="truncate font-display text-h2 text-mist-50">
             {entry.title || entry.url || "Untitled"}
@@ -109,17 +108,15 @@ export function EntryDetail({
           <Button variant="ghost" size="icon" title="Edit" onClick={onEdit}>
             <Pencil size={16} />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            title="Delete"
-            onClick={() => {
-              if (window.confirm(`Delete "${entry.title || entry.url}"? This can't be undone.`))
-                deleteEntry(entry.id);
-            }}
-          >
-            <Trash2 size={16} className="text-steel-400 hover:text-[color:var(--danger)]" />
-          </Button>
+          <EntryActionsMenu
+            entry={entry}
+            onEdit={() => onEdit()}
+            trigger={
+              <Button variant="ghost" size="icon" title="More actions">
+                <MoreHorizontal size={17} />
+              </Button>
+            }
+          />
         </div>
       </div>
 
@@ -196,13 +193,14 @@ export function EntryDetail({
         {entry.email && (
           <CopyRow label="Email" value={entry.email} onCopy={() => copy(entry.email, "Email")} />
         )}
-        {entry.username && (
+        {entry.usernames.map((u, i) => (
           <CopyRow
-            label="Username"
-            value={entry.username}
-            onCopy={() => copy(entry.username, "Username")}
+            key={i}
+            label={entry.usernames.length > 1 ? `Username ${i + 1}` : "Username"}
+            value={u}
+            onCopy={() => copy(u, "Username")}
           />
-        )}
+        ))}
 
         {entry.password && (
           <div className="flex flex-col gap-1.5">
@@ -268,9 +266,25 @@ export function EntryDetail({
           </div>
         )}
 
-        <div className="mt-auto flex gap-4 pt-4 text-body-sm text-steel-500">
-          <span>Updated {timeAgo(entry.updatedAt)}</span>
-          <span>Password set {timeAgo(entry.passwordUpdatedAt)}</span>
+        <div className="mt-auto flex flex-col gap-1 border-t border-ink-600 pt-4 text-body-sm text-steel-500">
+          <div className="flex justify-between gap-4">
+            <span>Created</span>
+            <span className="font-mono text-steel-400">
+              {formatDateTime(entry.createdAt)}
+            </span>
+          </div>
+          <div className="flex justify-between gap-4">
+            <span>Last updated</span>
+            <span className="font-mono text-steel-400">
+              {formatDateTime(entry.updatedAt)}
+            </span>
+          </div>
+          <div className="flex justify-between gap-4">
+            <span>Password changed</span>
+            <span className="font-mono text-steel-400">
+              {formatDateTime(entry.passwordUpdatedAt)}
+            </span>
+          </div>
         </div>
       </div>
     </div>

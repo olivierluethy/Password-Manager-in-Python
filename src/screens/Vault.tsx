@@ -151,6 +151,7 @@ export function Vault() {
             selectedId={selectedEntryId}
             onSelect={setSelectedEntry}
             onNew={openNew}
+            onEditEntry={openEdit}
             title={listTitle}
           />
           <div className="flex-1 overflow-hidden">

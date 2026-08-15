@@ -1,10 +1,12 @@
 import { useMemo } from "react";
-import { Plus, Search, Star } from "lucide-react";
+import { MoreHorizontal, Plus, Search, Star } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { EntryActionsMenu } from "@/components/vault/EntryActionsMenu";
+import { Favicon } from "@/components/vault/Favicon";
 import { rankEntries } from "@/lib/search";
-import { initials, tileHue } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useVault } from "@/store";
 import { ENTRY_MIME } from "@/components/vault/Sidebar";
 import type { Entry } from "@/lib/types";
 
@@ -15,6 +17,7 @@ export function EntryList({
   selectedId,
   onSelect,
   onNew,
+  onEditEntry,
   title,
 }: {
   entries: Entry[];
@@ -23,8 +26,11 @@ export function EntryList({
   selectedId: string | null;
   onSelect: (id: string) => void;
   onNew: () => void;
+  onEditEntry: (entry: Entry) => void;
   title: string;
 }) {
+  const { settings } = useVault();
+  const iconsOn = settings?.loadWebsiteIcons ?? true;
   const ranked = useMemo(() => rankEntries(entries, query), [entries, query]);
   const isNearest = query.trim() !== "" && ranked.length === 1 && ranked[0].score <= 0.34;
 
@@ -69,7 +75,9 @@ export function EntryList({
                   key={entry.id}
                   entry={entry}
                   active={entry.id === selectedId}
+                  iconsOn={iconsOn}
                   onClick={() => onSelect(entry.id)}
+                  onEdit={onEditEntry}
                 />
               ))}
             </ul>
@@ -83,16 +91,20 @@ export function EntryList({
 function Row({
   entry,
   active,
+  iconsOn,
   onClick,
+  onEdit,
 }: {
   entry: Entry;
   active: boolean;
+  iconsOn: boolean;
   onClick: () => void;
+  onEdit: (entry: Entry) => void;
 }) {
-  const subtitle = entry.username || entry.email || entry.url || "No login";
-  const hue = tileHue(entry.title || entry.url);
+  const subtitle =
+    entry.usernames[0] || entry.email || entry.url || "No login";
   return (
-    <li>
+    <li className="group relative">
       <button
         onClick={onClick}
         draggable
@@ -101,21 +113,18 @@ function Row({
           e.dataTransfer.effectAllowed = "move";
         }}
         className={cn(
-          "flex w-full items-center gap-3 rounded-md border-l-2 px-2.5 py-2 text-left transition-colors duration-150 ease-vault",
+          "flex w-full items-center gap-3 rounded-md border-l-2 py-2 pl-2.5 pr-9 text-left transition-colors duration-150 ease-vault",
           active
             ? "border-brass-500 bg-ink-700"
             : "border-transparent hover:bg-ink-650",
         )}
       >
-        <span
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-sm font-display text-body-sm font-semibold"
-          style={{
-            background: `color-mix(in srgb, hsl(${hue} 45% 45%) 22%, var(--ink-700))`,
-            color: `hsl(${hue} 60% 78%)`,
-          }}
-        >
-          {initials(entry.title, entry.url)}
-        </span>
+        <Favicon
+          title={entry.title}
+          url={entry.url}
+          enabled={iconsOn}
+          className="h-9 w-9 rounded-sm text-body-sm"
+        />
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-1.5">
             <span className="truncate text-body text-mist-50">
@@ -128,6 +137,20 @@ function Row({
           <span className="block truncate text-body-sm text-steel-400">{subtitle}</span>
         </span>
       </button>
+      <div className="absolute right-1 top-1/2 -translate-y-1/2">
+        <EntryActionsMenu
+          entry={entry}
+          onEdit={onEdit}
+          trigger={
+            <button
+              title="Quick actions"
+              className="grid h-7 w-7 place-items-center rounded-sm text-steel-400 opacity-0 transition-opacity hover:bg-ink-600 hover:text-mist-50 focus-visible:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100 data-[state=open]:text-mist-50"
+            >
+              <MoreHorizontal size={16} />
+            </button>
+          }
+        />
+      </div>
     </li>
   );
 }
