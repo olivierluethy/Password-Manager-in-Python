@@ -15,6 +15,14 @@ export function timeAgo(unixSecs: number): string {
   return `${years} yr${years === 1 ? "" : "s"} ago`;
 }
 
+/** Format a Unix timestamp (seconds) as Swiss `dd.MM.yyyy HH:mm`. */
+export function formatDateTime(unixSecs: number): string {
+  if (!unixSecs) return "—";
+  const d = new Date(unixSecs * 1000);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 const STRENGTH_LABELS = ["Very weak", "Weak", "Fair", "Strong", "Excellent"];
 export function strengthLabel(score: number): string {
   return STRENGTH_LABELS[Math.max(0, Math.min(4, score))];

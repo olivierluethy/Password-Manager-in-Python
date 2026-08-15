@@ -126,7 +126,7 @@ export function CommandPalette({
                           {entry.title || entry.url || "Untitled"}
                         </span>
                         <span className="block truncate text-body-sm text-steel-400">
-                          {entry.username || entry.email || entry.url}
+                          {entry.usernames[0] || entry.email || entry.url}
                           {path ? ` · ${path}` : ""}
                         </span>
                       </span>

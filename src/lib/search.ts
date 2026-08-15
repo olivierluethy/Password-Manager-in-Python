@@ -75,7 +75,7 @@ export function rankEntries(entries: Entry[], query: string): Ranked[] {
     const score = Math.max(
       fieldScore(entry.title, q) * 1.0,
       fieldScore(entry.url, q) * 0.9,
-      fieldScore(entry.username, q) * 0.8,
+      Math.max(0, ...entry.usernames.map((u) => fieldScore(u, q))) * 0.8,
       fieldScore(entry.email, q) * 0.8,
       fieldScore(entry.notes, q) * 0.5,
     );
