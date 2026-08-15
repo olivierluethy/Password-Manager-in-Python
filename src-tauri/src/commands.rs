@@ -232,6 +232,27 @@ pub async fn check_breach(state: State<'_, AppState>, password: String) -> Resul
     crate::breach::check(&password).await
 }
 
+// ---- favicons (opt-in via the "Load website icons" setting) -------------
+
+/// Fetch the website icon for an entry's URL, honoring the setting. Returns a
+/// `data:` URL, or `null` when icons are disabled or the site has none. Cached on
+/// disk so each domain is fetched at most once.
+#[tauri::command]
+pub async fn fetch_favicon(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    url: String,
+) -> Result<Option<String>> {
+    let enabled = {
+        let vault = state.vault.lock().unwrap();
+        vault.settings().map(|s| s.load_website_icons).unwrap_or(true)
+    };
+    if !enabled || url.trim().is_empty() {
+        return Ok(None);
+    }
+    crate::favicon::fetch(&app, &url).await
+}
+
 // ---- encrypted export / import -----------------------------------------
 
 #[tauri::command]

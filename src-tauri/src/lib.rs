@@ -4,6 +4,7 @@ mod browser;
 mod commands;
 mod crypto;
 mod error;
+mod favicon;
 mod generator;
 mod migration;
 mod model;
@@ -65,6 +66,7 @@ pub fn run() {
             commands::detect_browsers,
             commands::open_url,
             commands::check_breach,
+            commands::fetch_favicon,
             commands::export_encrypted,
             commands::import_encrypted,
             commands::export_migration_csv,
