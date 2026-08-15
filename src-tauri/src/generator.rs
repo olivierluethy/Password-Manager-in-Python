@@ -38,6 +38,12 @@ pub struct GenOptions {
     pub symbols: bool,
     #[serde(default)]
     pub avoid_ambiguous: bool,
+    /// Minimum count of digits the result must contain (character mode).
+    #[serde(default)]
+    pub min_numbers: usize,
+    /// Minimum count of symbols the result must contain (character mode).
+    #[serde(default)]
+    pub min_symbols: usize,
     // passphrase mode
     #[serde(default = "default_words")]
     pub word_count: usize,
@@ -99,24 +105,30 @@ pub fn generate(opts: &GenOptions) -> GenResult {
 
 fn generate_chars(opts: &GenOptions) -> GenResult {
     let mut pool: Vec<char> = Vec::new();
-    let mut required: Vec<Vec<char>> = Vec::new();
+    // Each enabled class carries its char set and the minimum number of that class
+    // the result must contain.
+    let mut required: Vec<(Vec<char>, usize)> = Vec::new();
 
-    let add = |src: &str, on: bool, pool: &mut Vec<char>, required: &mut Vec<Vec<char>>| {
+    let filter_set = |src: &str| -> Vec<char> {
+        src.chars()
+            .filter(|c| !opts.avoid_ambiguous || !AMBIGUOUS.contains(*c))
+            .collect()
+    };
+    let mut add = |src: &str, on: bool, min: usize| {
         if on {
-            let set: Vec<char> = src
-                .chars()
-                .filter(|c| !opts.avoid_ambiguous || !AMBIGUOUS.contains(*c))
-                .collect();
+            let set = filter_set(src);
             if !set.is_empty() {
                 pool.extend(&set);
-                required.push(set);
+                required.push((set, min));
             }
         }
     };
-    add(LOWER, opts.lower, &mut pool, &mut required);
-    add(UPPER, opts.upper, &mut pool, &mut required);
-    add(DIGITS, opts.digits, &mut pool, &mut required);
-    add(SYMBOLS, opts.symbols, &mut pool, &mut required);
+    // Lowercase/uppercase guarantee at least one when enabled; digits/symbols honor
+    // the explicit minimums from the generator options.
+    add(LOWER, opts.lower, 1);
+    add(UPPER, opts.upper, 1);
+    add(DIGITS, opts.digits, opts.min_numbers.max(1));
+    add(SYMBOLS, opts.symbols, opts.min_symbols.max(1));
 
     if pool.is_empty() {
         // Fall back to lowercase so we never emit an empty password.
@@ -124,12 +136,19 @@ fn generate_chars(opts: &GenOptions) -> GenResult {
         required.clear();
     }
 
-    let length = opts.length.clamp(4, 128);
+    // Grow the length if the minimums demand more room than requested.
+    let total_min: usize = required.iter().map(|(_, m)| *m).sum();
+    let length = opts.length.clamp(4, 128).max(total_min);
     let mut chars: Vec<char> = Vec::with_capacity(length);
 
-    // Guarantee at least one character from each selected set (when it fits).
-    for set in required.iter().take(length) {
-        chars.push(pick_char(set));
+    // Guarantee the minimum count from each selected class (when it fits).
+    for (set, min) in required.iter() {
+        for _ in 0..*min {
+            if chars.len() >= length {
+                break;
+            }
+            chars.push(pick_char(set));
+        }
     }
     while chars.len() < length {
         chars.push(pick_char(&pool));
