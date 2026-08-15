@@ -22,6 +22,7 @@ pub fn new_id() -> String {
 
 /// A single credential entry.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Entry {
     pub id: String,
     pub title: String,
@@ -85,6 +86,7 @@ impl Entry {
 
 /// Fields the UI supplies when creating or editing an entry.
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EntryInput {
     pub title: String,
     #[serde(default)]
@@ -105,6 +107,7 @@ pub struct EntryInput {
 
 /// A folder in the (nested) tree. `parent_id == None` means a root folder.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Folder {
     pub id: String,
     pub name: String,
@@ -132,6 +135,7 @@ impl Folder {
 
 /// User-configurable settings, stored inside the encrypted vault.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Settings {
     /// Auto-lock after this many seconds of inactivity.
     pub auto_lock_secs: u32,
@@ -162,6 +166,7 @@ impl Default for Settings {
 
 /// The complete decrypted vault contents.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct VaultData {
     #[serde(default)]
     pub entries: Vec<Entry>,
