@@ -1,4 +1,5 @@
 <div align="center">
+  <img src="src-tauri/icons/128x128.png" alt="Tresor logo" width="140" />
 
 # Tresor
 
@@ -7,6 +8,14 @@
 Your passwords never leave your machine. No cloud, no accounts, no telemetry.
 
 Built with Tauri 2 · Rust · React · TypeScript
+
+  <p>
+    <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-blue.svg"></a>
+    <img alt="Tauri" src="https://img.shields.io/badge/Tauri_2-24C8DB?logo=tauri&logoColor=white">
+    <img alt="Rust" src="https://img.shields.io/badge/Rust-000000?logo=rust&logoColor=white">
+    <img alt="React" src="https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black">
+    <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white">
+  </p>
 
 </div>
 
@@ -111,4 +120,9 @@ Nothing in that file is readable without your master password.
 
 ## License
 
-MIT — see [`LICENSE`](LICENSE).
+Released under the [MIT License](LICENSE) © 2026 Olivier Lüthy. You're free to use, modify and distribute this
+software, including commercially, as long as the copyright notice and license are included.
+
+## Author
+
+Built by **Olivier Lüthy** — [GitHub](https://github.com/olivierluethy).
